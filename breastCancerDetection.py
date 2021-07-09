@@ -3,59 +3,64 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+# read file
 df = pd.read_csv('data.csv')
+print('(Number of Rows, Number of Columns) =', df.shape)
 
+# Check for any NULL value 
+print(df.isna().sum())
+
+print(df.head(10))
+
+# We will be removing all the columns with NULL value
+df = df.dropna(axis=1)
+
+print(df.shape)
+print(df.dtypes)
+print(df.head(10))
+print(df['diagnosis'].value_counts())
+
+# Convert string value into int value
 from sklearn.preprocessing import LabelEncoder
-labelencoder_Y = LabelEncoder()
-df.iloc[:,1]= labelencoder_Y.fit_transform(df.iloc[:,1].values)
-print(labelencoder_Y.fit_transform(df.iloc[:,1].values))
+labelEncoder = LabelEncoder()
+df.iloc[:,1]= labelEncoder.fit_transform(df.iloc[:,1].values)
+print(labelEncoder.fit_transform(df.iloc[:,1].values))
 
-
+# Getting the correlation of the colums
 correlation = df.corr()
 print(correlation)
 
-# splitting the data set into 
-# feature data - independant data X
-# target data - dependent data Y
-X = df.iloc[:, 2:31].values 
-Y = df.iloc[:, 1].values 
+# Visualisation of the correlation via heat map
+plt.figure(figsize=(20,20))  
+sns.heatmap(df.corr(), annot=True, fmt='.0%')
 
-# split data into 75% training / 25% test data
+# splitting the data set into 
+    # feature data - independant data x
+    # target data - dependent data y
+x = df.iloc[:, 2:31].values 
+y = df.iloc[:, 1].values 
+
+# split data into 80% training / 20% test data
 from sklearn.model_selection import train_test_split
-X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size = 0.25, random_state = 0)
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size = 0.2, random_state = 0)
 
 # data scaling - bring all features to the same level of magnitude 
-# (basically turn data into 0-100 form)
 from sklearn.preprocessing import StandardScaler
 sc = StandardScaler()
-X_train = sc.fit_transform(X_train)
-X_test = sc.transform(X_test)
+x_train = sc.fit_transform(x_train)
+x_test = sc.transform(x_test)
 
-# function for knn
-# detect cancer is present or not 
-def models(X_train,Y_train):
-    #Using KNeighborsClassifier 
-    from sklearn.neighbors import KNeighborsClassifier
-    knn = KNeighborsClassifier(n_neighbors = 5, metric = 'minkowski', p = 2)
-    knn.fit(X_train, Y_train)
+from sklearn.neighbors import KNeighborsClassifier
+knn = KNeighborsClassifier(n_neighbors = 5, metric = 'minkowski', p = 2)
+knn.fit(x_train, y_train)
+print('K Nearest Neighbor Training Accuracy:', knn.score(x_train, y_train))
 
-    print('K Nearest Neighbor Training Accuracy:', knn.score(X_train, Y_train))
-    return knn
+# Comparing the predicted value and the target value of the test data.
+print(pd.DataFrame(list(zip(y_test, knn.predict(x_test))), columns=['target', 'predicted']))
 
-
-# to use the model function
-model = models(X_train,Y_train)
-
-# confusion matrix
-# false negative - patients with cancer misdiagnosed as not having cancer
-# false positive - patients with no cancer misdiagnosed as having cancer
-# true positive/negative - correct diagnosis
-# TP = sensitivity
-# TN = specificity
-
-# construct confusion mastrix
+# Construct confusion mastrix
 from sklearn.metrics import confusion_matrix
-cm = confusion_matrix(Y_test, model.predict(X_test))
+cm = confusion_matrix(y_test, knn.predict(x_test))
 
 TN = cm[0][0]
 TP = cm[1][1]
@@ -63,27 +68,25 @@ FN = cm[1][0]
 FP = cm[0][1]
 
 print(cm)
-print('Model[KNN] Testing Accuracy = "{}!"'.format((TP + TN) / (TP + TN + FN + FP)))
-print()# Print a new line
+print('KNN Testing Accuracy = "{}!"'.format((TP + TN) / (TP + TN + FN + FP)))
 
-# Show other ways to get the classification accuracy & other metrics 
+print()
+
 from sklearn.metrics import classification_report
 from sklearn.metrics import accuracy_score
 
-
-print('Model - KNN')
 #Check precision, recall, f1-score
-print( classification_report(Y_test, model.predict(X_test)) )
+print( classification_report(y_test, knn.predict(x_test)) )
 #Another way to get the models accuracy on the test data
-print( accuracy_score(Y_test, model.predict(X_test)))
+print( accuracy_score(y_test, knn.predict(x_test)))
 print()#Print a new line
 
-
 #Print Prediction using KNN
-pred = model.predict(X_test)
+pred = knn.predict(x_test)
 print("top - prediction   /   bottom - actual classification")
 print(pred)
 print()
 #Print the actual values
-print(Y_test)
+print(y_test)
+
 
